@@ -235,7 +235,7 @@ public class EnvironmentConfigurationFactory extends ConfigurationFactory {
 	 * "environment variable format" to "properties format". Note that the keys in the map returned by
 	 * this method will have been converted to "properties format".
 	 * 
-	 * @param properties a {@link Properties}
+	 * @param map source {@link Map}
 	 * @return cooked {@link Map}
 	 */
 	Map<String, String> cookedMapForMap(final Map<String, String> map) {
