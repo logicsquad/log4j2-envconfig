@@ -27,7 +27,7 @@ import org.apache.logging.log4j.core.config.properties.PropertiesConfigurationFa
  * Custom Log4j 2 {@link ConfigurationFactory} that sources configuration from system properties and
  * environment variables.
  * </p>
- * 
+ *
  * <h3>System properties</h3>
  * <p>
  * At configuration time, this class searches system properties for keys beginning with
@@ -35,40 +35,40 @@ import org.apache.logging.log4j.core.config.properties.PropertiesConfigurationFa
  * are used with their values to configure Log4j 2. For example: {@code app.logging.status=ERROR} is
  * converted to {@code status=ERROR}, and this property is used in configuration.
  * </p>
- * 
+ *
  * <p>
  * This class will also parse a custom "quick syntax" for declaring {@code Logger}s. Log4j 2
  * configuration takes <em>two</em> properties to configure each {@code Logger}, compared to Log4j
  * 1's single property. This class will parse a property of the form:
  * </p>
- * 
+ *
  * <pre>
  * app.logging.quick.&lt;Logger name&gt;=&lt;level&gt;
  * </pre>
- * 
+ *
  * <p>
  * For example:
  * </p>
- * 
+ *
  * <pre>
  * app.logging.quick.net.logicsquad.foo.bar.SomeClass = WARN
  * </pre>
- * 
+ *
  * <p>
  * is equivalent to:
  * </p>
- * 
+ *
  * <pre>
  * app.logging.logger.log1.name=net.logicsquad.foo.bar.SomeClass
  * app.logging.logger.log1.level=WARN
  * </pre>
- * 
+ *
  * <p>
  * <em>Additionally</em>, the {@code loggers} property will be correctly amended to include this new
  * {@code Logger}, which will be given a unique symbolic name. Note that this syntax is available
  * <em>only</em> via system properties, and won't be parsed via environment variables.
  * </p>
- * 
+ *
  * <h3>Environment variables</h3>
  * <p>
  * At configuration time, this class searches environment variables for keys beginning with
@@ -78,22 +78,22 @@ import org.apache.logging.log4j.core.config.properties.PropertiesConfigurationFa
  * configure Log4j 2. For example: {@code APP_LOGGING_ROOTLOGGER_LEVEL=DEBUG} is converted to
  * {@code rootLogger.level=DEBUG}, and this property is used in configuration.
  * </p>
- * 
+ *
  * <h3>Usage</h3>
  * <p>
  * This class can be used in one of the myriad ways available to configure Log4j 2. The easiest
  * approach is to add {@code src/main/resources/log4j2.component.properties} containing the
  * following property:
- * 
+ *
  * <pre>
  * log4j.configurationFactory = net.logicsquad.log4j.config.EnvironmentConfigurationFactory
  * </pre>
- * 
+ *
  * <p>
  * If no suitable properties are found via system properties or environment variables, some sensible
  * defaults are used to log to the console.
  * </p>
- * 
+ *
  * <h3>Extension</h3>
  * <p>
  * The protected method {@link #stringForKey(Properties, String)} can be overridden by a subclass to
@@ -101,7 +101,7 @@ import org.apache.logging.log4j.core.config.properties.PropertiesConfigurationFa
  * cases, such as where system properties contain <em>encrypted</em> values, but some other service
  * will return plaintext values for those keys.
  * </p>
- * 
+ *
  * @author paulh
  * @author Romain Manni-Bucau
  * @see <a href= "https://rmannibucau.metawerx.net/post/log4j2-environment-configuration">Log4j2:
@@ -218,7 +218,7 @@ public class EnvironmentConfigurationFactory extends ConfigurationFactory {
 	/**
 	 * Returns a {@link Map} containing the subset of entries of {@code properties} where the key starts
 	 * with {@link #PROPERTY_PREFIX}.
-	 * 
+	 *
 	 * @param properties a {@link Properties}
 	 * @return cooked {@link Map}
 	 */
@@ -234,7 +234,7 @@ public class EnvironmentConfigurationFactory extends ConfigurationFactory {
 	 * {@link #sanitizeKeyForEntry(Entry)} on the entry&mdash;that is, the key converted from
 	 * "environment variable format" to "properties format". Note that the keys in the map returned by
 	 * this method will have been converted to "properties format".
-	 * 
+	 *
 	 * @param map source {@link Map}
 	 * @return cooked {@link Map}
 	 */
@@ -247,7 +247,7 @@ public class EnvironmentConfigurationFactory extends ConfigurationFactory {
 	/**
 	 * "Sanitizes" a key in environment variable format. Specifically, '_' is replaced by '.', and words
 	 * are lower-cased with the exception of case-sensitive keywords.
-	 * 
+	 *
 	 * @param entry a {@link Entry}
 	 * @return sanitized key from {@code entry}
 	 */
@@ -262,7 +262,7 @@ public class EnvironmentConfigurationFactory extends ConfigurationFactory {
 
 	/**
 	 * Sets <em>hard-coded</em> default properties on {@code properties}.
-	 * 
+	 *
 	 * @param properties a {@link Properties} object
 	 */
 	private void setDefaults(final Properties properties) {
@@ -274,7 +274,7 @@ public class EnvironmentConfigurationFactory extends ConfigurationFactory {
 
 	/**
 	 * Returns a {@link Map} representing {@code properties}.
-	 * 
+	 *
 	 * @param properties a {@link Properties}
 	 * @return corresponding {@link Map}
 	 */
@@ -289,7 +289,7 @@ public class EnvironmentConfigurationFactory extends ConfigurationFactory {
 	 * method to do something else. That is, there is no guarantee that the value string returned was
 	 * obtained from {@code properties}, and subclass implementations are free to ignore that parameter
 	 * completely.
-	 * 
+	 *
 	 * @param properties a {@link Properties}
 	 * @param key        a key
 	 * @return string value for {@code key}
@@ -301,7 +301,7 @@ public class EnvironmentConfigurationFactory extends ConfigurationFactory {
 	/**
 	 * Returns a list of "short names" of {@code Logger}s from the {@code loggers} key. That is, the
 	 * comma-separated list of symbolic names for loggers specified in full elsewhere.
-	 * 
+	 *
 	 * @param cookedProperties a {@link Map} (already processed by
 	 *                         {@link #cookedMapForProperties(Properties)})
 	 * @return list of "short names"
@@ -318,7 +318,7 @@ public class EnvironmentConfigurationFactory extends ConfigurationFactory {
 
 	/**
 	 * Returns a list of "long names" of {@code Logger}s parsed from entries using the "quick syntax".
-	 * 
+	 *
 	 * @param cookedProperties a {@link Map} (already processed by
 	 *                         {@link #cookedMapForProperties(Properties)})
 	 * @return list of "long names"
@@ -332,7 +332,7 @@ public class EnvironmentConfigurationFactory extends ConfigurationFactory {
 	/**
 	 * Returns the log level corresponding to {@code longName} parsed from entries using the "quick
 	 * syntax".
-	 * 
+	 *
 	 * @param longName         long name of a {@code Logger}
 	 * @param cookedProperties a {@link Map} (already processed by
 	 *                         {@link #cookedMapForProperties(Properties)})

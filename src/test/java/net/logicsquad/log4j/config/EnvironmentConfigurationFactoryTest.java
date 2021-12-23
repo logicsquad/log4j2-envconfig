@@ -15,7 +15,7 @@ import org.junit.Test;
 
 /**
  * Unit tests on {@link EnvironmentConfigurationFactory}.
- * 
+ *
  * @author paulh
  * @since 1.0
  */
@@ -25,7 +25,7 @@ public class EnvironmentConfigurationFactoryTest {
 	private static final String TEST_PROPERTIES_2 = "test2.properties";
 	private static final String TEST_PROPERTIES_3 = "test3.properties";
 	private static final String TEST_PROPERTIES_4 = "test4.properties";
-	
+
 	private EnvironmentConfigurationFactory factory;
 
 	private Map<String, String> envarKeyTests;
