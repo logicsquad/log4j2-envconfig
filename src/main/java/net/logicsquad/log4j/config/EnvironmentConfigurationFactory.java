@@ -24,13 +24,9 @@ import org.apache.logging.log4j.core.config.properties.PropertiesConfigurationFa
 
 /**
  * <p>
- * Custom Log4j 2 {@link ConfigurationFactory} that sources configuration from:
+ * Custom Log4j 2 {@link ConfigurationFactory} that sources configuration from system properties and
+ * environment variables.
  * </p>
- * 
- * <ul>
- * <li>system properties; and</li>
- * <li>environment variables.</li>
- * </ul>
  * 
  * <h3>System properties</h3>
  * <p>
