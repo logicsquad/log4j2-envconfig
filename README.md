@@ -15,13 +15,13 @@ including it as a Maven dependency:
     <dependency>
       <groupId>net.logicsquad</groupId>
       <artifactId>log4j2-envconfig</artifactId>
-      <version>0.1</version>
+      <version>1.0</version>
     </dependency>
 
 Add `src/main/resources/log4j2.component.properties` containing the
 following property:
 
-    log4j.configurationFactory = net.logicsquad.log4j.config.EnvironmentConfigurationFactory
+    log4j.configurationFactory=net.logicsquad.log4j.config.EnvironmentConfigurationFactory
 
 You can now use system properties or environment variables to
 configure Log4j 2.
