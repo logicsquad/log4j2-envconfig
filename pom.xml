@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>net.logicsquad</groupId>
   <artifactId>log4j2-envconfig</artifactId>
-  <version>0.1-SNAPSHOT</version>
+  <version>1.0</version>
   <name>Log4j 2 EnvironmentConfigurationFactory</name>
   <description>A ConfigurationFactory subclass for configuring Log4j 2 from system properties and environment variables.</description>
   <url>https://github.com/logicsquad/log4j2-envconfig</url>
