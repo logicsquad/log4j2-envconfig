@@ -205,12 +205,12 @@ public class EnvironmentConfigurationFactory extends ConfigurationFactory {
 				}
 			}
 			final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-			try (final OutputStream os = byteArrayOutputStream) {
+			try (OutputStream os = byteArrayOutputStream) {
 				properties.store(os, "");
 			}
 			return new PropertiesConfigurationFactory().getConfiguration(loggerContext,
 					new ConfigurationSource(new ByteArrayInputStream(byteArrayOutputStream.toByteArray())));
-		} catch (final IOException e) {
+		} catch (IOException e) {
 			throw new IllegalStateException(e);
 		}
 	}
