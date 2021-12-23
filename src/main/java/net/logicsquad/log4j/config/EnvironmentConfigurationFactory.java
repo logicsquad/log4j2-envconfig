@@ -325,8 +325,8 @@ public class EnvironmentConfigurationFactory extends ConfigurationFactory {
 	 */
 	List<String> loggerLongNames(Map<String, String> cookedProperties) {
 		Objects.requireNonNull(cookedProperties);
-		return cookedProperties.entrySet().stream().filter(e -> e.getKey().toString().startsWith(QUICK_PREFIX))
-				.map(e -> e.getKey().toString().substring(QUICK_PREFIX.length())).collect(Collectors.toList());
+		return cookedProperties.entrySet().stream().filter(e -> e.getKey().startsWith(QUICK_PREFIX))
+				.map(e -> e.getKey().substring(QUICK_PREFIX.length())).collect(Collectors.toList());
 	}
 
 	/**
