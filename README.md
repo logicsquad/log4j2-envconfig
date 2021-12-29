@@ -1,3 +1,6 @@
+![](https://github.com/logicsquad/log4j2-envconfig/workflows/build/badge.svg)
+[![License](https://img.shields.io/badge/License-BSD-blue.svg)](https://opensource.org/licenses/BSD-2-Clause)
+
 Log4j 2 EnvironmentConfigurationFactory
 =======================================
 
