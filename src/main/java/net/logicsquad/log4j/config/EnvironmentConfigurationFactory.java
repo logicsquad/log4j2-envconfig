@@ -161,7 +161,7 @@ public class EnvironmentConfigurationFactory extends ConfigurationFactory {
 
 	@Override
 	protected String[] getSupportedTypes() {
-		return SUFFIXES;
+		return Arrays.copyOf(SUFFIXES, SUFFIXES.length);
 	}
 
 	@Override
