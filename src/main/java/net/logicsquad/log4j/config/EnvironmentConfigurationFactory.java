@@ -64,8 +64,8 @@ import org.apache.logging.log4j.core.config.properties.PropertiesConfigurationFa
  * </pre>
  *
  * <p>
- * <em>Additionally</em>, the {@code loggers} property will be correctly amended to include this new
- * {@code Logger}, which will be given a unique symbolic name. Note that this syntax is available
+ * <em>Additionally</em>, if a {@code loggers} property is present, it will be amended to include this
+ * new {@code Logger}, which will be given a unique symbolic name. Note that this syntax is available
  * <em>only</em> via system properties, and won't be parsed via environment variables.
  * </p>
  *
@@ -177,7 +177,7 @@ public class EnvironmentConfigurationFactory extends ConfigurationFactory {
 			// Fetch and cook the system properties
 			Map<String, String> systemMap = cookedMapForProperties(System.getProperties());
 			// Handle any "quick syntax" Loggers
-			List<String> loggers = loggerShortNames(systemMap);
+			List<String> quickLoggers = new ArrayList<>();
 			int index = 1;
 			for (String className : loggerLongNames(systemMap)) {
 				String level = quickLevelForLoggerLongName(className, systemMap);
@@ -188,14 +188,13 @@ public class EnvironmentConfigurationFactory extends ConfigurationFactory {
 				systemMap.put(prefix + ".name", className);
 				// Add level
 				systemMap.put(prefix + ".level", level);
-				loggers.add("quick" + index);
+				quickLoggers.add("quick" + index);
 				index++;
 			}
-			systemMap.put("loggers", loggers.stream().collect(Collectors.joining(",")));
 
 			// Concatenate the cooked system properties and cooked envars
 			final Properties properties = new Properties();
-			properties.putAll(cookedMapForMap(System.getenv()));
+			properties.putAll(cookedMapForMap(environmentVariables()));
 			properties.putAll(systemMap);
 
 			// Remove any properties whose values are blank
@@ -205,6 +204,14 @@ public class EnvironmentConfigurationFactory extends ConfigurationFactory {
 				if (entry.getValue() == null || entry.getValue().toString().isEmpty()) {
 					entryIterator.remove();
 				}
+			}
+
+			// Add any "quick syntax" Loggers to the list of Logger names, if there is one. If there isn't,
+			// Log4j finds the Loggers itself, "quick syntax" ones included.
+			if (!quickLoggers.isEmpty() && properties.containsKey(LOGGERS_KEY)) {
+				List<String> loggers = loggerShortNames(mapForProperties(properties));
+				loggers.addAll(quickLoggers);
+				properties.put(LOGGERS_KEY, loggers.stream().collect(Collectors.joining(",")));
 			}
 
 			if (properties.size() == 0) {
@@ -220,6 +227,16 @@ public class EnvironmentConfigurationFactory extends ConfigurationFactory {
 		} catch (IOException e) {
 			throw new IllegalStateException(e);
 		}
+	}
+
+	/**
+	 * Returns the environment variables to configure from. This implementation returns
+	 * {@link System#getenv()}, and unit tests override it to supply their own.
+	 *
+	 * @return environment variables
+	 */
+	Map<String, String> environmentVariables() {
+		return System.getenv();
 	}
 
 	/**

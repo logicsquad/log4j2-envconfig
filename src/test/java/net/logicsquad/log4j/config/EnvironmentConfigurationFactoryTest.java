@@ -15,6 +15,7 @@ import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.config.Configuration;
 import org.apache.logging.log4j.core.config.ConfigurationSource;
+import org.apache.logging.log4j.core.config.LoggerConfig;
 import org.apache.logging.log4j.core.layout.PatternLayout;
 import org.junit.After;
 import org.junit.Before;
@@ -34,6 +35,9 @@ public class EnvironmentConfigurationFactoryTest {
 	private static final String TEST_PROPERTIES_4 = "test4.properties";
 	private static final String PROPERTY_PREFIX = "app.logging.";
 	private static final String NOISY_LOGGER = "net.logicsquad.foo.bar.Noisy";
+	private static final String DECLARED_LOGGER = "net.logicsquad.foo.bar.Declared";
+	private static final String QUICK_LOGGER = "net.logicsquad.foo.bar.Quick";
+	private static final String UNLISTED_LOGGER = "net.logicsquad.foo.bar.Unlisted";
 
 	private EnvironmentConfigurationFactory factory;
 
@@ -240,6 +244,68 @@ public class EnvironmentConfigurationFactoryTest {
 		return;
 	}
 
+	@Test
+	public void getConfigurationKeepsDeclaredLoggersWithQuickSyntax() {
+		System.setProperty(PROPERTY_PREFIX + "logger.declared.name", DECLARED_LOGGER);
+		System.setProperty(PROPERTY_PREFIX + "logger.declared.level", "ERROR");
+		System.setProperty(PROPERTY_PREFIX + "quick." + QUICK_LOGGER, "WARN");
+		Configuration configuration = configurationFor(factory);
+		assertLoggerLevel(configuration, DECLARED_LOGGER, Level.ERROR);
+		assertLoggerLevel(configuration, QUICK_LOGGER, Level.WARN);
+		return;
+	}
+
+	@Test
+	public void getConfigurationAddsQuickLoggersToList() {
+		System.setProperty(PROPERTY_PREFIX + "loggers", "declared");
+		System.setProperty(PROPERTY_PREFIX + "logger.declared.name", DECLARED_LOGGER);
+		System.setProperty(PROPERTY_PREFIX + "logger.declared.level", "ERROR");
+		System.setProperty(PROPERTY_PREFIX + "quick." + QUICK_LOGGER, "WARN");
+		Configuration configuration = configurationFor(factory);
+		assertLoggerLevel(configuration, DECLARED_LOGGER, Level.ERROR);
+		assertLoggerLevel(configuration, QUICK_LOGGER, Level.WARN);
+		return;
+	}
+
+	@Test
+	public void getConfigurationAddsQuickLoggersToEnvironmentList() {
+		Map<String, String> environment = new HashMap<>();
+		environment.put("APP_LOGGING_LOGGERS", "declared");
+		environment.put("APP_LOGGING_LOGGER_DECLARED_NAME", DECLARED_LOGGER);
+		environment.put("APP_LOGGING_LOGGER_DECLARED_LEVEL", "ERROR");
+		System.setProperty(PROPERTY_PREFIX + "quick." + QUICK_LOGGER, "WARN");
+		Configuration configuration = configurationFor(factoryWithEnvironment(environment));
+		assertLoggerLevel(configuration, DECLARED_LOGGER, Level.ERROR);
+		assertLoggerLevel(configuration, QUICK_LOGGER, Level.WARN);
+		return;
+	}
+
+	@Test
+	public void getConfigurationKeepsEnvironmentList() {
+		Map<String, String> environment = new HashMap<>();
+		environment.put("APP_LOGGING_LOGGERS", "declared");
+		environment.put("APP_LOGGING_LOGGER_DECLARED_NAME", DECLARED_LOGGER);
+		environment.put("APP_LOGGING_LOGGER_DECLARED_LEVEL", "ERROR");
+		environment.put("APP_LOGGING_LOGGER_UNLISTED_NAME", UNLISTED_LOGGER);
+		environment.put("APP_LOGGING_LOGGER_UNLISTED_LEVEL", "DEBUG");
+		Configuration configuration = configurationFor(factoryWithEnvironment(environment));
+		assertLoggerLevel(configuration, DECLARED_LOGGER, Level.ERROR);
+		assertFalse(configuration.getLoggers().containsKey(UNLISTED_LOGGER));
+		return;
+	}
+
+	@Test
+	public void getConfigurationIgnoresBlankListWithQuickSyntax() {
+		System.setProperty(PROPERTY_PREFIX + "loggers", "");
+		System.setProperty(PROPERTY_PREFIX + "logger.declared.name", DECLARED_LOGGER);
+		System.setProperty(PROPERTY_PREFIX + "logger.declared.level", "ERROR");
+		System.setProperty(PROPERTY_PREFIX + "quick." + QUICK_LOGGER, "WARN");
+		Configuration configuration = configurationFor(factory);
+		assertLoggerLevel(configuration, DECLARED_LOGGER, Level.ERROR);
+		assertLoggerLevel(configuration, QUICK_LOGGER, Level.WARN);
+		return;
+	}
+
 	/**
 	 * Returns an initialized {@link Configuration} from {@code factory}.
 	 *
@@ -263,6 +329,37 @@ public class EnvironmentConfigurationFactoryTest {
 		Appender appender = configuration.getAppender(defaults.get("appender.stdout.name"));
 		assertNotNull(appender);
 		assertEquals(defaults.get("appender.stdout.layout.pattern"), ((PatternLayout) appender.getLayout()).getConversionPattern());
+		return;
+	}
+
+	/**
+	 * Returns an {@link EnvironmentConfigurationFactory} that reads {@code environment} in place of the
+	 * real environment variables.
+	 *
+	 * @param environment environment variables
+	 * @return {@link EnvironmentConfigurationFactory}
+	 */
+	private static EnvironmentConfigurationFactory factoryWithEnvironment(Map<String, String> environment) {
+		return new EnvironmentConfigurationFactory() {
+			@Override
+			Map<String, String> environmentVariables() {
+				return environment;
+			}
+		};
+	}
+
+	/**
+	 * Asserts that {@code configuration} has a {@link LoggerConfig} named {@code name} with level
+	 * {@code level}.
+	 *
+	 * @param configuration a {@link Configuration}
+	 * @param name          {@code Logger} name
+	 * @param level         expected level
+	 */
+	private static void assertLoggerLevel(Configuration configuration, String name, Level level) {
+		LoggerConfig loggerConfig = configuration.getLoggers().get(name);
+		assertNotNull(name, loggerConfig);
+		assertEquals(level, loggerConfig.getLevel());
 		return;
 	}
 }
