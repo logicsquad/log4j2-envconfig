@@ -91,7 +91,8 @@ import org.apache.logging.log4j.core.config.properties.PropertiesConfigurationFa
  *
  * <p>
  * If no suitable properties are found via system properties or environment variables, some sensible
- * defaults are used to log to the console.
+ * defaults are used to log to the console. Properties whose values are blank are ignored, so the
+ * defaults are also used if every value found is blank.
  * </p>
  *
  * <h3>Extension</h3>
@@ -100,6 +101,12 @@ import org.apache.logging.log4j.core.config.properties.PropertiesConfigurationFa
  * provide alternate resolution of property <em>values</em>. This supports fairly esoteric use
  * cases, such as where system properties contain <em>encrypted</em> values, but some other service
  * will return plaintext values for those keys.
+ * </p>
+ *
+ * <p>
+ * The protected method {@link #defaultProperties()} can be overridden by a subclass to add to or
+ * change the defaults, for example to quieten a noisy {@code Logger} until the application's own
+ * configuration is in place.
  * </p>
  *
  * @author paulh
@@ -191,18 +198,18 @@ public class EnvironmentConfigurationFactory extends ConfigurationFactory {
 			properties.putAll(cookedMapForMap(System.getenv()));
 			properties.putAll(systemMap);
 
+			// Remove any properties whose values are blank
+			Iterator<Entry<Object, Object>> entryIterator = properties.entrySet().iterator();
+			while (entryIterator.hasNext()) {
+				Entry<Object, Object> entry = entryIterator.next();
+				if (entry.getValue() == null || entry.getValue().toString().isEmpty()) {
+					entryIterator.remove();
+				}
+			}
+
 			if (properties.size() == 0) {
 				// Set defaults if we found nothing
 				setDefaults(properties);
-			} else {
-				// In the usual case, remove any properties whose values are blank
-				Iterator<Entry<Object, Object>> entryIterator = properties.entrySet().iterator();
-				while (entryIterator.hasNext()) {
-					Entry<Object, Object> entry = entryIterator.next();
-					if (entry.getValue() == null || entry.getValue().toString().isEmpty()) {
-						entryIterator.remove();
-					}
-				}
 			}
 			final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
 			try (OutputStream os = byteArrayOutputStream) {
@@ -261,15 +268,29 @@ public class EnvironmentConfigurationFactory extends ConfigurationFactory {
 	}
 
 	/**
-	 * Sets <em>hard-coded</em> default properties on {@code properties}.
+	 * Sets default properties from {@link #defaultProperties()} on {@code properties}.
 	 *
 	 * @param properties a {@link Properties} object
 	 */
 	private void setDefaults(final Properties properties) {
-		for (Entry<String, String> e : DEFAULT_PROPERTIES.entrySet()) {
+		for (Entry<String, String> e : defaultProperties().entrySet()) {
 			properties.putIfAbsent(e.getKey(), e.getValue());
 		}
 		return;
+	}
+
+	/**
+	 * Returns the default properties used when no suitable properties are found in system properties or
+	 * environment variables. This implementation returns a new, mutable copy of the <em>hard-coded</em>
+	 * defaults, which log at {@code INFO} and above to the console. Subclasses can override this method
+	 * to add to or change those defaults, for example to quieten a noisy {@code Logger} until the
+	 * application's own configuration is in place.
+	 *
+	 * @return default properties
+	 * @since 1.1
+	 */
+	protected Map<String, String> defaultProperties() {
+		return new HashMap<>(DEFAULT_PROPERTIES);
 	}
 
 	/**

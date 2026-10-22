@@ -10,6 +10,13 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.core.Appender;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.Configuration;
+import org.apache.logging.log4j.core.config.ConfigurationSource;
+import org.apache.logging.log4j.core.layout.PatternLayout;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -25,6 +32,8 @@ public class EnvironmentConfigurationFactoryTest {
 	private static final String TEST_PROPERTIES_2 = "test2.properties";
 	private static final String TEST_PROPERTIES_3 = "test3.properties";
 	private static final String TEST_PROPERTIES_4 = "test4.properties";
+	private static final String PROPERTY_PREFIX = "app.logging.";
+	private static final String NOISY_LOGGER = "net.logicsquad.foo.bar.Noisy";
 
 	private EnvironmentConfigurationFactory factory;
 
@@ -64,6 +73,17 @@ public class EnvironmentConfigurationFactoryTest {
 		Properties properties4 = new Properties();
 		properties4.load(getClass().getClassLoader().getResourceAsStream(TEST_PROPERTIES_4));
 		cookedProperties4 = factory.cookedMapForProperties(properties4);
+		return;
+	}
+
+	@After
+	public void teardown() {
+		// Clear any properties set by a test
+		for (String key : System.getProperties().stringPropertyNames()) {
+			if (key.startsWith(PROPERTY_PREFIX)) {
+				System.clearProperty(key);
+			}
+		}
 		return;
 	}
 
@@ -170,6 +190,79 @@ public class EnvironmentConfigurationFactoryTest {
 	public void quickLevelForLoggerLongNameReturnsExpectedLevel() {
 		assertEquals("WARN", factory.quickLevelForLoggerLongName("net.logicsquad.foo.bar.Application", cookedProperties4));
 		assertEquals("DEBUG", factory.quickLevelForLoggerLongName("net.logicsquad.foo.bar.Session", cookedProperties4));
+		return;
+	}
+
+	@Test
+	public void getConfigurationAppliesDefaultsWhenNoPropertiesFound() {
+		assertDefaultsApplied(configurationFor(factory), factory.defaultProperties());
+		return;
+	}
+
+	@Test
+	public void getConfigurationAppliesDefaultsWhenAllValuesBlank() {
+		System.setProperty(PROPERTY_PREFIX + "rootLogger.level", "");
+		assertDefaultsApplied(configurationFor(factory), factory.defaultProperties());
+		return;
+	}
+
+	@Test
+	public void getConfigurationIgnoresDefaultsWhenPropertiesFound() {
+		System.setProperty(PROPERTY_PREFIX + "rootLogger.level", "WARN");
+		Configuration configuration = configurationFor(factory);
+		assertEquals(Level.WARN, configuration.getRootLogger().getLevel());
+		assertNull(configuration.getAppender(factory.defaultProperties().get("appender.stdout.name")));
+		return;
+	}
+
+	@Test
+	public void defaultPropertiesReturnsMutableCopy() {
+		Map<String, String> defaults = factory.defaultProperties();
+		defaults.put("foo", "bar");
+		assertFalse(factory.defaultProperties().containsKey("foo"));
+		return;
+	}
+
+	@Test
+	public void getConfigurationAppliesDefaultsFromSubclass() {
+		EnvironmentConfigurationFactory subclass = new EnvironmentConfigurationFactory() {
+			@Override
+			protected Map<String, String> defaultProperties() {
+				Map<String, String> result = super.defaultProperties();
+				result.put("logger.noisy.name", NOISY_LOGGER);
+				result.put("logger.noisy.level", "WARN");
+				return result;
+			}
+		};
+		Configuration configuration = configurationFor(subclass);
+		assertDefaultsApplied(configuration, factory.defaultProperties());
+		assertEquals(Level.WARN, configuration.getLoggers().get(NOISY_LOGGER).getLevel());
+		return;
+	}
+
+	/**
+	 * Returns an initialized {@link Configuration} from {@code factory}.
+	 *
+	 * @param factory an {@link EnvironmentConfigurationFactory}
+	 * @return initialized {@link Configuration}
+	 */
+	private static Configuration configurationFor(EnvironmentConfigurationFactory factory) {
+		Configuration configuration = factory.getConfiguration(new LoggerContext("test"), ConfigurationSource.NULL_SOURCE);
+		configuration.initialize();
+		return configuration;
+	}
+
+	/**
+	 * Asserts that {@code configuration} has the root level, appender and pattern given in {@code defaults}.
+	 *
+	 * @param configuration a {@link Configuration}
+	 * @param defaults      default properties
+	 */
+	private static void assertDefaultsApplied(Configuration configuration, Map<String, String> defaults) {
+		assertEquals(Level.toLevel(defaults.get("rootLogger.level")), configuration.getRootLogger().getLevel());
+		Appender appender = configuration.getAppender(defaults.get("appender.stdout.name"));
+		assertNotNull(appender);
+		assertEquals(defaults.get("appender.stdout.layout.pattern"), ((PatternLayout) appender.getLayout()).getConversionPattern());
 		return;
 	}
 }
