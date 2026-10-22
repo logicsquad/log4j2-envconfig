@@ -64,8 +64,8 @@ import org.apache.logging.log4j.core.config.properties.PropertiesConfigurationFa
  * </pre>
  *
  * <p>
- * <em>Additionally</em>, the {@code loggers} property will be correctly amended to include this new
- * {@code Logger}, which will be given a unique symbolic name. Note that this syntax is available
+ * <em>Additionally</em>, if a {@code loggers} property is present, it will be amended to include this
+ * new {@code Logger}, which will be given a unique symbolic name. Note that this syntax is available
  * <em>only</em> via system properties, and won't be parsed via environment variables.
  * </p>
  *
@@ -91,7 +91,8 @@ import org.apache.logging.log4j.core.config.properties.PropertiesConfigurationFa
  *
  * <p>
  * If no suitable properties are found via system properties or environment variables, some sensible
- * defaults are used to log to the console.
+ * defaults are used to log to the console. Properties whose values are blank are ignored, so the
+ * defaults are also used if every value found is blank.
  * </p>
  *
  * <h3>Extension</h3>
@@ -100,6 +101,12 @@ import org.apache.logging.log4j.core.config.properties.PropertiesConfigurationFa
  * provide alternate resolution of property <em>values</em>. This supports fairly esoteric use
  * cases, such as where system properties contain <em>encrypted</em> values, but some other service
  * will return plaintext values for those keys.
+ * </p>
+ *
+ * <p>
+ * The protected method {@link #defaultProperties()} can be overridden by a subclass to add to or
+ * change the defaults, for example to quieten a noisy {@code Logger} until the application's own
+ * configuration is in place.
  * </p>
  *
  * @author paulh
@@ -161,7 +168,7 @@ public class EnvironmentConfigurationFactory extends ConfigurationFactory {
 
 	@Override
 	protected String[] getSupportedTypes() {
-		return SUFFIXES;
+		return Arrays.copyOf(SUFFIXES, SUFFIXES.length);
 	}
 
 	@Override
@@ -170,7 +177,7 @@ public class EnvironmentConfigurationFactory extends ConfigurationFactory {
 			// Fetch and cook the system properties
 			Map<String, String> systemMap = cookedMapForProperties(System.getProperties());
 			// Handle any "quick syntax" Loggers
-			List<String> loggers = loggerShortNames(systemMap);
+			List<String> quickLoggers = new ArrayList<>();
 			int index = 1;
 			for (String className : loggerLongNames(systemMap)) {
 				String level = quickLevelForLoggerLongName(className, systemMap);
@@ -181,28 +188,35 @@ public class EnvironmentConfigurationFactory extends ConfigurationFactory {
 				systemMap.put(prefix + ".name", className);
 				// Add level
 				systemMap.put(prefix + ".level", level);
-				loggers.add("quick" + index);
+				quickLoggers.add("quick" + index);
 				index++;
 			}
-			systemMap.put("loggers", loggers.stream().collect(Collectors.joining(",")));
 
 			// Concatenate the cooked system properties and cooked envars
 			final Properties properties = new Properties();
-			properties.putAll(cookedMapForMap(System.getenv()));
+			properties.putAll(cookedMapForMap(environmentVariables()));
 			properties.putAll(systemMap);
+
+			// Remove any properties whose values are blank
+			Iterator<Entry<Object, Object>> entryIterator = properties.entrySet().iterator();
+			while (entryIterator.hasNext()) {
+				Entry<Object, Object> entry = entryIterator.next();
+				if (entry.getValue() == null || entry.getValue().toString().isEmpty()) {
+					entryIterator.remove();
+				}
+			}
+
+			// Add any "quick syntax" Loggers to the list of Logger names, if there is one. If there isn't,
+			// Log4j finds the Loggers itself, "quick syntax" ones included.
+			if (!quickLoggers.isEmpty() && properties.containsKey(LOGGERS_KEY)) {
+				List<String> loggers = loggerShortNames(mapForProperties(properties));
+				loggers.addAll(quickLoggers);
+				properties.put(LOGGERS_KEY, loggers.stream().collect(Collectors.joining(",")));
+			}
 
 			if (properties.size() == 0) {
 				// Set defaults if we found nothing
 				setDefaults(properties);
-			} else {
-				// In the usual case, remove any properties whose values are blank
-				Iterator<Entry<Object, Object>> entryIterator = properties.entrySet().iterator();
-				while (entryIterator.hasNext()) {
-					Entry<Object, Object> entry = entryIterator.next();
-					if (entry.getValue() == null || entry.getValue().toString().isEmpty()) {
-						entryIterator.remove();
-					}
-				}
 			}
 			final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
 			try (OutputStream os = byteArrayOutputStream) {
@@ -213,6 +227,16 @@ public class EnvironmentConfigurationFactory extends ConfigurationFactory {
 		} catch (IOException e) {
 			throw new IllegalStateException(e);
 		}
+	}
+
+	/**
+	 * Returns the environment variables to configure from. This implementation returns
+	 * {@link System#getenv()}, and unit tests override it to supply their own.
+	 *
+	 * @return environment variables
+	 */
+	Map<String, String> environmentVariables() {
+		return System.getenv();
 	}
 
 	/**
@@ -261,15 +285,29 @@ public class EnvironmentConfigurationFactory extends ConfigurationFactory {
 	}
 
 	/**
-	 * Sets <em>hard-coded</em> default properties on {@code properties}.
+	 * Sets default properties from {@link #defaultProperties()} on {@code properties}.
 	 *
 	 * @param properties a {@link Properties} object
 	 */
 	private void setDefaults(final Properties properties) {
-		for (Entry<String, String> e : DEFAULT_PROPERTIES.entrySet()) {
+		for (Entry<String, String> e : defaultProperties().entrySet()) {
 			properties.putIfAbsent(e.getKey(), e.getValue());
 		}
 		return;
+	}
+
+	/**
+	 * Returns the default properties used when no suitable properties are found in system properties or
+	 * environment variables. This implementation returns a new, mutable copy of the <em>hard-coded</em>
+	 * defaults, which log at {@code INFO} and above to the console. Subclasses can override this method
+	 * to add to or change those defaults, for example to quieten a noisy {@code Logger} until the
+	 * application's own configuration is in place.
+	 *
+	 * @return default properties
+	 * @since 1.1
+	 */
+	protected Map<String, String> defaultProperties() {
+		return new HashMap<>(DEFAULT_PROPERTIES);
 	}
 
 	/**
