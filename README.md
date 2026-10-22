@@ -18,7 +18,7 @@ including it as a Maven dependency:
     <dependency>
       <groupId>net.logicsquad</groupId>
       <artifactId>log4j2-envconfig</artifactId>
-      <version>1.0</version>
+      <version>1.1</version>
     </dependency>
 
 Add `src/main/resources/log4j2.component.properties` containing the
